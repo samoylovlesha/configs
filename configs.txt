@@ -1,0 +1,117 @@
+Помни про флаги комплияции ejudge и сантайзеры
+gcc -fsanitize=undefine,address,leak -g name.c
+__builtin_add/mul/sub_overflow(TYPE a, TYPE b, TYPE *res); -return true если переполнилось
+ 	char buf[64];
+	snprintf(buf, sizeof(buf), "%d", value) – возвр число написанных байт
+аналог с дин памятью
+	char *buf = NULL;
+	asprintf(&buf, "%d", value);
+	...
+	free(buf);
+корректная проверка на преобразование строки в число
+char *eptr = NULL;
+	errno = 0;
+	long lval = strtol(str, &eptr, 10);
+	if (errno || *eptr || eptr == str || (int) lval != lval) {
+    	// ошибка преобразования
+	}
+ 
+Работа с сист вызовами
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <dirent.h> - работа с директориями
+int open(const char *pathname, int oflag, ... /* mode_t mode*/); - не забывать писать close
+oflag - O_RDONLY, O_WRONLY, O_RDWR , доп полезные при открытии файла на запись
+O_APPEND Запись производится в конец файла.
+O_CREAT Если файл не существует, он будет создан + дописать права 3 аргументом
+O_TRUNC – усечение размера файла до 0
+off_t lseek(int filedes, off_t offset, int whence); - передвинуть указатель в файле
+SEEK_SET  - смещение от начала файла.
+SEEK_CUR - смещение от текущей позиции файла
+SEEK_END - смещение от конца файла
+Текущая позиция файла может превышать его текущий размер. В этом случае следующая операция записи увеличит размер файла.
+ssize_t read(int filedes, void *buf, size_t nbytes); - Возвращает количество прочитанных байт, 0 — если достигнут конец файла, -1 в случае ошибки.
+ssize_t write(int filedes, const void *buf, size_t nbytes);
+int stat(const char *restrict pathname, struct stat *restrict buf);
+int fstat(int filedes, struct stat *buf);
+int lstat(const char *restrict pathname, struct stat *restrict buf);
+Системный вызов stat возвращает структуру с информацией о файле, указанном в аргументе pathname. Функция fstat возвращает информацию об открытом файле, который определяется дескриптором filedes. Функция lstat похожа на функцию stat, но когда ей передается имя символической ссылки, она возвращает сведения о самой символической ссылке, а не о файле, на который она ссылается.
+struct stat {
+	mode_t st_mode;   /* тип файла и режим (права доступа) */
+	ino_t st_ino; 	/* номер индексного узла */
+	dev_t st_dev; 	/* номер устройства (файловой системы) */
+	dev_t st_rdev;	/* номер устройства для специальных файлов */
+	nlink_t st_nlink; /* количество ссылок */
+	uid_t st_uid; 	/* идентификатор пользователя владельца */
+	gid_t st_gid; 	/* идентификатор группы владельца */
+	off_t st_size;	/* размер в байтах, для регулярных файлов */
+	time_t st_atime;  /* время последнего обращения к файлу */
+	time_t st_mtime;  /* время последнего изменения файла */
+	time_t st_ctime;  /* время последнего изменения флагов состояния файла */
+};
+•	S_ISREG(st_mode) Регулярный файл
+•	S_ISDIR(st_mode) Каталог
+•	S_ISCHR(st_mode) Специальный файл символьного устройства
+•	S_ISBLK(st_mode) Специальный файл блочного устройства
+•	S_ISFIFO(st_mode) Канал (именованный или неименованный)
+•	S_ISLNK(st_mode) Символическая ссылка
+•	S_ISSOCK(st_mode) Сокет
+ 
+int access(const char *pathname, int mode); - В случае успеха (всё, что спрашивалось, можно) вызов возвращает 0.
+•	F_OK - просто факт существования
+•	R_OK - файл можно читать
+•	W_OK - в файл можно писать
+•	X_OK - файл можно исполнить
+ 
+int mkdir(const char *pathname, mode_t mode); rmdir создание и удаление каталога,0-успех
+DIR *opendir(const char *pathname);
+struct dirent *readdir(DIR *dp);
+int closedir(DIR *dp);
+ 
+long telldir(DIR *dp);
+void seekdir(DIR *dp, long loc);
+Функция readdir возвращает очередную запись в открытом каталоге.
+struct dirent
+{
+	ino_t d_ino;           	/* номер индексного дескриптора */
+	char d_name[NAME_MAX + 1]; /* строка имени файла, завершающаяся нулевым символом */
+}
+int chdir(const char *pathname);
+int fchdir(int filedes);
+Процесс может изменить текущий рабочий каталог с помощью функции chdir или fchdir.
+char *getcwd(char *buf, size_t size);
+#include <time.h>
+#include <sys/time.h>
+time_t time(time_t *calptr); -  возвращает текущее время
+int gettimeofday(struct timeval *restrict tp, void *restrict tzp); - получить текущее время с микросекундной точностью.
+ 
+struct timeval
+{
+	time_t tv_sec; /* секунды */
+	long   tv_usec; /* микросекунды */
+};
+ 
+ 
+struct tm /* время, разбитое ына составляющие */
+{
+	int tm_sec; /* секунды от начала минуты: [0 - 60] (note leap seconds) */
+	int tm_min; /* минуты от начала часа: [0 - 59] */
+	int tm_hour; /* часы от полуночи: [0 - 23] */
+	int tm_mday; /* дни от начала месяца: [1 - 31] */
+	int tm_mon; /* месяцы с января: [0 - 11] */
+	int tm_year; /* годы с 1900 года */
+	int tm_wday; /* дни с воскресенья: [0 - 6] */
+	int tm_yday; /* дни от начала года (1 января): [0 - 365] */
+	int tm_isdst; /* флаг перехода на летнее время: <0 - unknown, 0 - no daylight saving, >0 - daylight saving */
+};
+struct tm *gmtime_r(const time_t *calptr, struct tm *result);
+struct tm *localtime_r(const time_t *calptr, struct tm *result);
+Функция gmtime_r выдает календарную дату по UTC, а функция localtime_r выдает календарную дату в локальном часовом поясе, result – структура которая заполнится
+time_t timegm(struct tm *tmptr);
+time_t mktime(struct tm *tmptr);
+Первая функция предполагает, что календарная дата записана по UTC, а вторая, что в локальной временной зоне + нормализуется время в структуре
+Перед вызовом поле tm_isdst обязательно нужно записать значение −1.(!!!)
+ 
+ 
