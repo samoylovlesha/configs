@@ -111,6 +111,36 @@ struct tm *localtime_r(const time_t *calptr, struct tm *result);
 Функция gmtime_r выдает календарную дату по UTC, а функция localtime_r выдает календарную дату в локальном часовом поясе, result – структура которая заполнится
 time_t timegm(struct tm *tmptr);
 time_t mktime(struct tm *tmptr);
+
+2
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+
+int
+main(int argc, char const *argv[])
+{
+    ++argv;
+    --argc;
+    unsigned long long ans = 0;
+    unsigned int offset = 0;
+    for (int i = 0; i < argc; i += 2) {
+        char *eptr = NULL;
+        unsigned long long bit = strtoull(argv[i], &eptr, 10);
+        unsigned long long newbit = 0;
+        int cnt = strtol(argv[i + 1], &eptr, 10);
+        for (int j = 0; j < cnt; ++j) {
+            newbit <<= 1;
+            newbit |= bit;
+        }
+        newbit <<= offset;
+        ans |= newbit;
+        offset += cnt;
+    }
+    printf("%llu", ans);
+    return 0;
+}
+
 Первая функция предполагает, что календарная дата записана по UTC, а вторая, что в локальной временной зоне + нормализуется время в структуре
 Перед вызовом поле tm_isdst обязательно нужно записать значение −1.(!!!)
  
