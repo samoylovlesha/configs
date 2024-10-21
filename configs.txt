@@ -112,6 +112,63 @@ struct tm *localtime_r(const time_t *calptr, struct tm *result);
 time_t timegm(struct tm *tmptr);
 time_t mktime(struct tm *tmptr);
 
+Первая функция предполагает, что календарная дата записана по UTC, а вторая, что в локальной временной зоне + нормализуется время в структуре
+Перед вызовом поле tm_isdst обязательно нужно записать значение −1.(!!!)
+ 
+ 
+1
+#include <string.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int
+main(int argc, char const *argv[])
+{
+    char name[PATH_MAX] = {0};
+    scanf("%s", name);
+    FILE *inp_fl = fopen(name, "r");
+    char path[PATH_MAX] = {0};
+    int cycle = 1;
+    while (fscanf(inp_fl, "%s", path) != EOF) {
+        int n = strlen(path);
+        int k = 0;
+        if (path[n - 1] == '\r') {
+            path[n - 1] = 0;
+            --n;
+        }
+        if (cycle == 1) {
+            k = 13;
+        } else if (cycle == 2) {
+            k = 12;
+        }
+        // непонятка с условием
+        else if (3 <= cycle && cycle <= 12) {
+            k = 0;
+        } else if (cycle == 13) {
+            k = 1;
+        } else if (cycle == 14) {
+            k = 0;
+        } else if (cycle == 15) {
+            k = 25;
+        } else if (cycle >= 16) {
+            k = 13;
+            cycle = 1;
+        }
+        for (int i = 0; i < n; ++i) {
+            if (islower(path[i])) {
+                path[i] = ((path[i] - 'a' + k)) % 26 + 'a';
+            }
+        }
+        ++cycle;
+        printf("%s\n", path);
+    }
+    fclose(inp_fl);
+    return 0;
+}
+
+
 2
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,8 +197,3 @@ main(int argc, char const *argv[])
     printf("%llu", ans);
     return 0;
 }
-
-Первая функция предполагает, что календарная дата записана по UTC, а вторая, что в локальной временной зоне + нормализуется время в структуре
-Перед вызовом поле tm_isdst обязательно нужно записать значение −1.(!!!)
- 
- 
